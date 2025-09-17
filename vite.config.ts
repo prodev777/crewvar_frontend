@@ -5,6 +5,15 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
     envDir: "../.",
     base: "/",
+    server: {
+        proxy: {
+            '/uploads': {
+                target: 'http://localhost:3000',
+                changeOrigin: true,
+                secure: false,
+            }
+        }
+    },
     build: {
         assetsDir: "assets",
         rollupOptions: {

@@ -1,12 +1,16 @@
 import { useLocation } from "react-router-dom";
-import SignupForm from "../components/SignupForm";
 import LoginForm from "../components/LoginForm";
+import SignupForm from "../components/SignupForm";
 import logo from "../../../assets/images/Home/logo.png";
 
-const Auth = () => {
+const AuthRoutes = () => {
     const location = useLocation();
-    const isLogin = location.pathname.split("/auth")[1] === "/login";
+    const isLogin = location.pathname.includes('/login');
 
+    return <AuthPage isLogin={isLogin} />;
+};
+
+const AuthPage = ({ isLogin }: { isLogin: boolean }) => {
     return (
         <div className="w-full h-screen" style={{ backgroundColor: '#B9F3E0' }}>
             <div className="w-full h-full">
@@ -33,4 +37,4 @@ const Auth = () => {
     );
 };
 
-export default Auth;
+export default AuthRoutes;

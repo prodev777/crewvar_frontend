@@ -1,4 +1,3 @@
-import Navbar from "../../../components/Elements/Navbar";
 import { Link } from "react-router-dom";
 import heroImage from "../../../assets/images/Home/hero.png";
 
@@ -7,7 +6,6 @@ const Showcase = () => {
         <div className="bg-[#B9F3E0] mb-8 relative">
             <div className="w-full h-full">
                 <div className="container px-[20px] lg:px-[96px] md:px-[48px] sm:px-[24px] relative z-20">
-                    <Navbar />
                     <div className="flex flex-col md:flex-row items-center">
                         {/* Left side - Text and Button */}
                         <div className="w-full md:w-[60%] lg:w-[70%] mb-8 md:mb-0 md:pr-8">

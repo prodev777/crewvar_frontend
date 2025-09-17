@@ -1,4 +1,5 @@
 import Showcase from "../components/Showcase";
+import Navbar from "../../../components/Elements/Navbar";
 import newArrivals from "../../../assets/images/Home/yourhomeatsea.png";
 import createProfile from "../../../assets/images/Home/createprofile.png";
 import findAround from "../../../assets/images/Home/findaround.png";
@@ -8,6 +9,7 @@ import favi from "../../../assets/images/Home/favi.png";
 export const Home = () => {
     return (
         <>
+            <Navbar />
             <Showcase />
             <div className="container px-[20px] lg:px-[96px] md:px-[48px] sm:px-[24px]">
                 <div className="flex flex-col md:flex-row rounded-lg overflow-hidden">

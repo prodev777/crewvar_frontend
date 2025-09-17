@@ -1,29 +1,43 @@
 import { IFavorite, IFavoriteAlert } from "../types/favorites";
 
-// Sample Favorites
+// Sample Favorites with realistic crew data
 export const sampleFavorites: IFavorite[] = [
     {
         id: "fav1",
         userId: "current_user",
-        favoriteUserId: "1", // Sarah Johnson
+        favoriteUserId: "sarah_johnson", // Sarah Johnson - Entertainment Staff
         createdAt: "2024-01-10T10:30:00Z",
         isActive: true
     },
     {
         id: "fav2",
         userId: "current_user",
-        favoriteUserId: "3", // Emma Thompson
+        favoriteUserId: "emma_thompson", // Emma Thompson - Housekeeping Supervisor
         createdAt: "2024-01-12T14:20:00Z",
+        isActive: true
+    },
+    {
+        id: "fav3",
+        userId: "current_user",
+        favoriteUserId: "mike_rodriguez", // Mike Rodriguez - Bar Manager
+        createdAt: "2024-01-08T16:45:00Z",
+        isActive: true
+    },
+    {
+        id: "fav4",
+        userId: "current_user",
+        favoriteUserId: "lisa_chen", // Lisa Chen - Guest Services
+        createdAt: "2024-01-15T09:15:00Z",
         isActive: true
     }
 ];
 
-// Sample Favorite Alerts
+// Sample Favorite Alerts with realistic scenarios
 export const sampleFavoriteAlerts: IFavoriteAlert[] = [
     {
         id: "alert1",
         userId: "current_user",
-        favoriteUserId: "1",
+        favoriteUserId: "sarah_johnson",
         alertType: "same_ship",
         shipName: "Royal Caribbean Symphony of the Seas",
         port: "Miami, Florida",
@@ -35,7 +49,7 @@ export const sampleFavoriteAlerts: IFavoriteAlert[] = [
     {
         id: "alert2",
         userId: "current_user",
-        favoriteUserId: "3",
+        favoriteUserId: "emma_thompson",
         alertType: "same_port",
         shipName: "Carnival Mardi Gras",
         port: "Port Canaveral, Florida",
@@ -47,16 +61,80 @@ export const sampleFavoriteAlerts: IFavoriteAlert[] = [
     {
         id: "alert3",
         userId: "current_user",
-        favoriteUserId: "1",
+        favoriteUserId: "mike_rodriguez",
         alertType: "both",
         shipName: "Royal Caribbean Symphony of the Seas",
         port: "Miami, Florida",
         date: "2024-01-16",
         isRead: false,
         createdAt: "2024-01-16T09:15:00Z",
-        message: "Sarah Johnson is on board Royal Caribbean Symphony of the Seas in Miami, Florida today — you're sailing together!"
+        message: "Mike Rodriguez is on board Royal Caribbean Symphony of the Seas in Miami, Florida today — you're sailing together!"
+    },
+    {
+        id: "alert4",
+        userId: "current_user",
+        favoriteUserId: "lisa_chen",
+        alertType: "same_ship",
+        shipName: "Carnival Vista",
+        port: "Galveston, Texas",
+        date: "2024-01-18",
+        isRead: false,
+        createdAt: "2024-01-18T06:45:00Z",
+        message: "Lisa Chen is on board Carnival Vista today — you might see each other!"
+    },
+    {
+        id: "alert5",
+        userId: "current_user",
+        favoriteUserId: "sarah_johnson",
+        alertType: "same_port",
+        shipName: "Norwegian Breakaway",
+        port: "New York, New York",
+        date: "2024-01-20",
+        isRead: true,
+        createdAt: "2024-01-20T10:20:00Z",
+        message: "Sarah Johnson is in New York, New York today — you're both in the same port!"
     }
 ];
+
+// Realistic crew member data for favorites
+export const crewMemberData = {
+    "sarah_johnson": {
+        displayName: "Sarah Johnson",
+        role: "Entertainment Staff",
+        department: "Entertainment",
+        shipName: "Royal Caribbean Symphony of the Seas",
+        avatar: "/default-avatar.png",
+        isOnline: true,
+        cruiseLine: "Royal Caribbean"
+    },
+    "emma_thompson": {
+        displayName: "Emma Thompson",
+        role: "Housekeeping Supervisor",
+        department: "Housekeeping",
+        shipName: "Carnival Mardi Gras",
+        avatar: "/default-avatar.png",
+        isOnline: false,
+        cruiseLine: "Carnival"
+    },
+    "mike_rodriguez": {
+        displayName: "Mike Rodriguez",
+        role: "Bar Manager",
+        department: "Food & Beverage",
+        shipName: "Royal Caribbean Symphony of the Seas",
+        avatar: "/default-avatar.png",
+        isOnline: true,
+        cruiseLine: "Royal Caribbean"
+    },
+    "lisa_chen": {
+        displayName: "Lisa Chen",
+        role: "Guest Services Agent",
+        department: "Guest Services",
+        shipName: "Carnival Vista",
+        avatar: "/default-avatar.png",
+        isOnline: true,
+        cruiseLine: "Carnival"
+    }
+};
 
 // Helper functions
 export const getFavoritesForUser = (userId: string): IFavorite[] => {

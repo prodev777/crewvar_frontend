@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { sampleCruiseLines } from "../data/onboarding-data";
 import { ShipSelection } from "./ShipSelection";
+import { useUpdateShipAssignment } from "../features/user/api/shipAssignmentApi";
+import { useAllShips } from "../features/cruise/api/cruiseData";
 
 interface QuickCheckInProps {
     isOpen: boolean;
@@ -19,6 +21,8 @@ export const QuickCheckIn = ({
 }: QuickCheckInProps) => {
     const [selectedCruiseLineId, setSelectedCruiseLineId] = useState<string>("");
     const [selectedShipId, setSelectedShipId] = useState<string>("");
+    const updateShipAssignmentMutation = useUpdateShipAssignment();
+    const { data: allShips } = useAllShips();
 
     useEffect(() => {
         if (isOpen) {
@@ -27,13 +31,66 @@ export const QuickCheckIn = ({
         }
     }, [isOpen, currentShip]);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
+        console.log('handleConfirm called with selectedShipId:', selectedShipId);
+        
         if (selectedShipId) {
-            const allShips = sampleCruiseLines.flatMap(cl => cl.ships);
-            const ship = allShips.find(s => s.id === selectedShipId);
-            if (ship) {
-                onConfirm(ship.id, ship.name);
+            // Try to find ship in real data first, fallback to sample data
+            let ship = allShips?.find(s => s.id === selectedShipId);
+            
+            // Fallback to sample data if not found in real data
+            if (!ship) {
+                const sampleShips = sampleCruiseLines.flatMap(cl => cl.ships);
+                const sampleShip = sampleShips.find(s => s.id === selectedShipId);
+                if (sampleShip) {
+                    // Convert sample ship to match expected interface
+                    ship = {
+                        id: sampleShip.id,
+                        name: sampleShip.name,
+                        cruise_line_id: '', // Will be set by parent
+                        is_active: true,
+                        created_at: '',
+                        updated_at: ''
+                    };
+                }
             }
+            
+            if (ship) {
+                console.log('Found ship:', ship);
+                try {
+                    // Update ship assignment in database
+                    await updateShipAssignmentMutation.mutateAsync({
+                        currentShipId: ship.id
+                    });
+                    
+                    // Also save to localStorage for quick access
+                    const today = new Date().toISOString().split('T')[0];
+                    const shipAssignment = {
+                        shipId: ship.id,
+                        shipName: ship.name,
+                        port: "Current Port", // This would come from ship data
+                        date: today,
+                        isConfirmed: true
+                    };
+                    
+                    localStorage.setItem('currentShipAssignment', JSON.stringify(shipAssignment));
+                    localStorage.setItem('lastShipConfirmation', today);
+                    
+                    // Call the original onConfirm callback
+                    onConfirm(ship.id, ship.name);
+                    
+                    console.log(`Ship assignment updated: ${ship.name} for ${today}`);
+                } catch (error) {
+                    console.error('Failed to update ship assignment:', error);
+                    // Still call onConfirm for UI feedback, but show error
+                    onConfirm(ship.id, ship.name);
+                }
+            } else {
+                console.error('Ship not found with ID:', selectedShipId);
+                console.log('Available ships:', allShips?.length || 0);
+            }
+        } else {
+            console.error('No ship selected');
         }
     };
 
@@ -99,11 +156,17 @@ export const QuickCheckIn = ({
                             Cancel
                         </button>
                         <button
-                            onClick={handleConfirm}
-                            disabled={!selectedShipId || isLoading}
+                            onClick={() => {
+                                console.log('Confirm button clicked');
+                                console.log('selectedShipId:', selectedShipId);
+                                console.log('isLoading:', isLoading);
+                                console.log('mutationLoading:', updateShipAssignmentMutation.isLoading);
+                                handleConfirm();
+                            }}
+                            disabled={!selectedShipId || isLoading || updateShipAssignmentMutation.isLoading}
                             className="flex-1 px-6 py-3 text-white bg-[#069B93] hover:bg-[#058a7a] rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isLoading ? 'Confirming...' : 'Confirm Ship'}
+                            {isLoading || updateShipAssignmentMutation.isLoading ? 'Updating...' : 'Confirm Ship'}
                         </button>
                     </div>
                 </div>

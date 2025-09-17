@@ -37,6 +37,7 @@ export interface IPort {
 
 export interface IPortConnectionContext {
     portConnections: IPortConnection[];
+    isLoading?: boolean;
     addPortConnection: (connection: Omit<IPortConnection, 'id' | 'createdAt' | 'status'>) => Promise<void>;
     removePortConnection: (connectionId: string) => Promise<void>;
     getConnectionsForPort: (portName: string, date: string) => IPortConnection[];
@@ -46,7 +47,7 @@ export interface IPortConnectionContext {
 }
 
 export interface IPortConnectionFormData {
-    portName: string;
+    cruiseLineId: string;
     dockedWithShipId: string;
     date: string;
 }

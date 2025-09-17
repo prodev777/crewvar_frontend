@@ -32,7 +32,8 @@ export interface ICalendarContext {
     assignments: ICruiseAssignment[];
     events: ICalendarEvent[];
     currentView: ICalendarView;
-    addAssignment: (assignment: Omit<ICruiseAssignment, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+    isLoading?: boolean;
+    addAssignment: (assignment: ICreateAssignmentData) => Promise<void>;
     updateAssignment: (assignmentId: string, updates: Partial<ICruiseAssignment>) => Promise<void>;
     deleteAssignment: (assignmentId: string) => Promise<void>;
     getAssignmentsForDateRange: (startDate: string, endDate: string) => ICruiseAssignment[];
@@ -46,6 +47,14 @@ export interface IAssignmentFormData {
     startDate: string;
     endDate: string;
     description?: string;
+}
+
+export interface ICreateAssignmentData {
+    cruiseLineId: string;
+    shipId: string;
+    startDate: string;
+    endDate: string;
+    status?: 'upcoming' | 'current' | 'completed' | 'cancelled';
 }
 
 export interface ICalendarProps {

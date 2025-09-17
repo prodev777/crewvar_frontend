@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "../../../components/Elements/Navbar";
+import { useNavigate, Link } from "react-router-dom";
 import { FavoritesList } from "../../../components/FavoritesList";
 import { FavoritesAlerts } from "../../../components/FavoritesAlerts";
+import logo from "../../../assets/images/Home/logo.png";
 
 export const Favorites = () => {
     const navigate = useNavigate();
@@ -17,39 +17,45 @@ export const Favorites = () => {
     };
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#B9F3DF' }}>
-            <Navbar />
-            <div className="min-h-screen">
-                <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-8">
-                    {/* Breadcrumb */}
-                    <div className="mb-4 lg:mb-6">
-                        <nav className="flex items-center space-x-2 text-xs lg:text-sm">
-                            <button 
-                                onClick={() => navigate('/dashboard')}
-                                className="text-[#069B93] hover:text-[#058a7a]"
-                            >
-                                Dashboard
-                            </button>
-                            <span className="text-gray-400">›</span>
-                            <span className="text-gray-600">Favorites & Alerts</span>
-                        </nav>
+        <div className="min-h-screen bg-gray-50">
+            {/* Mobile Header */}
+            <div className="bg-teal-600 text-white p-4 sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="p-2 hover:bg-teal-700 rounded-lg transition-colors"
+                        >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div>
+                            <h1 className="text-lg font-bold">Favorites & Alerts</h1>
+                            <p className="text-xs text-teal-100">Stay connected with your crew</p>
+                        </div>
                     </div>
+                    <Link to="/dashboard" className="flex items-center space-x-2 hover:bg-teal-700 rounded-lg px-3 py-2 transition-colors">
+                        <img 
+                            src={logo} 
+                            alt="Crewvar Logo" 
+                            className="h-6 w-auto"
+                        />
+                        <span className="text-sm font-medium">Dashboard</span>
+                    </Link>
+                </div>
+            </div>
 
-                    {/* Header */}
-                    <div className="mb-6 lg:mb-8">
-                        <h1 className="text-2xl lg:text-3xl font-bold text-[#069B93] mb-2">Favorites & Alerts</h1>
-                        <p className="text-sm lg:text-base text-gray-600">
-                            Stay connected with your favorite crew members. We'll let you know when you sail together again!
-                        </p>
-                    </div>
+            <div className="p-4 space-y-4">
 
-                    {/* Tabs */}
-                    <div className="flex space-x-1 mb-6 lg:mb-8 bg-gray-100 rounded-lg p-1 max-w-md">
+                {/* Tabs */}
+                <div className="bg-white rounded-lg shadow-sm border p-4">
+                    <div className="flex space-x-1 mb-4 bg-gray-100 rounded-lg p-1">
                         <button
                             onClick={() => setActiveTab('favorites')}
-                            className={`flex-1 px-4 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium rounded-md transition-colors ${
+                            className={`flex-1 px-4 py-3 text-sm font-medium rounded-md transition-colors ${
                                 activeTab === 'favorites'
-                                    ? 'bg-white text-[#069B93] shadow-sm'
+                                    ? 'bg-white text-teal-600 shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
@@ -57,9 +63,9 @@ export const Favorites = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('alerts')}
-                            className={`flex-1 px-4 lg:px-6 py-2 lg:py-3 text-xs lg:text-sm font-medium rounded-md transition-colors ${
+                            className={`flex-1 px-4 py-3 text-sm font-medium rounded-md transition-colors ${
                                 activeTab === 'alerts'
-                                    ? 'bg-white text-[#069B93] shadow-sm'
+                                    ? 'bg-white text-teal-600 shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900'
                             }`}
                         >
@@ -68,49 +74,17 @@ export const Favorites = () => {
                     </div>
 
                     {/* Content */}
-                    <div className="max-w-4xl mx-auto">
-                        {activeTab === 'favorites' ? (
-                            <FavoritesList 
-                                onViewProfile={handleViewProfile}
-                                onStartChat={handleStartChat}
-                            />
-                        ) : (
-                            <FavoritesAlerts 
-                                onViewProfile={handleViewProfile}
-                                onStartChat={handleStartChat}
-                            />
-                        )}
-                    </div>
-
-                    {/* Quick Actions */}
-                    <div className="mt-6 lg:mt-8 max-w-4xl mx-auto">
-                        <div className="bg-white rounded-lg shadow-sm border p-4 lg:p-6">
-                            <h3 className="text-base lg:text-lg font-semibold text-[#069B93] mb-3 lg:mb-4">Quick Actions</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
-                                <button 
-                                    onClick={() => navigate('/explore-ships')}
-                                    className="p-3 lg:p-4 text-left border border-gray-200 rounded-lg hover:border-[#069B93] hover:bg-[#B9F3DF] transition-colors"
-                                >
-                                    <h4 className="font-medium text-gray-900 text-sm lg:text-base">Explore Ships</h4>
-                                    <p className="text-xs lg:text-sm text-gray-600">Find crew members to add to favorites</p>
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/dashboard')}
-                                    className="p-3 lg:p-4 text-left border border-gray-200 rounded-lg hover:border-[#069B93] hover:bg-[#B9F3DF] transition-colors"
-                                >
-                                    <h4 className="font-medium text-gray-900 text-sm lg:text-base">Dashboard</h4>
-                                    <p className="text-xs lg:text-sm text-gray-600">View your daily crew updates</p>
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/chat')}
-                                    className="p-3 lg:p-4 text-left border border-gray-200 rounded-lg hover:border-[#069B93] hover:bg-[#B9F3DF] transition-colors"
-                                >
-                                    <h4 className="font-medium text-gray-900 text-sm lg:text-base">Messages</h4>
-                                    <p className="text-xs lg:text-sm text-gray-600">Chat with your connected crew</p>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    {activeTab === 'favorites' ? (
+                        <FavoritesList 
+                            onViewProfile={handleViewProfile}
+                            onStartChat={handleStartChat}
+                        />
+                    ) : (
+                        <FavoritesAlerts 
+                            onViewProfile={handleViewProfile}
+                            onStartChat={handleStartChat}
+                        />
+                    )}
                 </div>
             </div>
         </div>

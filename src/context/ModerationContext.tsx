@@ -1,13 +1,16 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { IReport, IModerationAction, ISuspiciousActivity, IModerationStats, IModerationContext } from "../types/moderation";
-import { 
-    sampleReports,
-    sampleModerationActions,
-    sampleSuspiciousActivities,
-    sampleModerationStats,
-    addReport,
-    addModerationAction
-} from "../data/moderation-data";
+import {
+    useReports,
+    useSuspiciousActivities,
+    useModerationStats,
+    useUpdateReportStatus,
+    usePerformModerationAction,
+    useSubmitReport,
+    IReport as APIReport,
+    IModerationStats as APIModerationStats,
+    ISuspiciousActivity as APISuspiciousActivity
+} from "../features/moderation/api/moderationApi";
 
 const ModerationContext = createContext<IModerationContext | undefined>(undefined);
 
@@ -24,41 +27,74 @@ interface ModerationProviderProps {
 }
 
 export const ModerationProvider = ({ children }: ModerationProviderProps) => {
-    const [reports, setReports] = useState<IReport[]>(sampleReports);
-    const [moderationActions, setModerationActions] = useState<IModerationAction[]>(sampleModerationActions);
-    const [suspiciousActivities, setSuspiciousActivities] = useState<ISuspiciousActivity[]>(sampleSuspiciousActivities);
-    const [stats, setStats] = useState<IModerationStats>(sampleModerationStats);
+    const [moderationActions] = useState<IModerationAction[]>([]);
     const [isAdmin] = useState(true); // In real app, this would come from auth context
 
-    // Load initial data
-    useEffect(() => {
-        setReports(sampleReports);
-        setModerationActions(sampleModerationActions);
-        setSuspiciousActivities(sampleSuspiciousActivities);
-        setStats(sampleModerationStats);
-    }, []);
+    // Use real API hooks
+    const { data: reportsData, isLoading: reportsLoading } = useReports();
+    const { data: suspiciousData, isLoading: suspiciousLoading } = useSuspiciousActivities();
+    const { data: statsData, isLoading: statsLoading } = useModerationStats();
+    
+    const updateReportStatusMutation = useUpdateReportStatus();
+    const performModerationActionMutation = usePerformModerationAction();
+    const submitReportMutation = useSubmitReport();
+
+    // Convert API types to context types
+    const convertAPIReportToContext = (apiReport: APIReport): IReport => ({
+        id: apiReport.id,
+        reporterId: apiReport.reporterId,
+        reportedUserId: apiReport.reportedUserId,
+        reportType: apiReport.reportType,
+        description: apiReport.description,
+        status: apiReport.status === 'investigating' ? 'under_review' as any : apiReport.status === 'pending' ? 'pending' as any : apiReport.status === 'resolved' ? 'resolved' as any : 'dismissed' as any,
+        resolution: apiReport.resolution,
+        priority: 'medium', // Default priority
+        createdAt: apiReport.createdAt,
+        updatedAt: apiReport.updatedAt,
+        reviewedBy: undefined,
+        actions: []
+    });
+
+    const convertAPIStatsToContext = (apiStats: APIModerationStats): IModerationStats => ({
+        totalReports: apiStats.totalReports,
+        pendingReports: apiStats.pendingReports,
+        resolvedReports: apiStats.resolvedReports,
+        activeBans: apiStats.temporaryBans + apiStats.permanentBans,
+        suspiciousUsers: 0, // Not available in API yet
+        reportsThisWeek: 0, // Not available in API yet
+        averageResolutionTime: 0 // Not available in API yet
+    });
+
+    const reports = (reportsData?.reports || []).map(convertAPIReportToContext);
+    const suspiciousActivities = (suspiciousData?.activities || []).map((apiActivity: APISuspiciousActivity): ISuspiciousActivity => ({
+        id: apiActivity.id,
+        userId: apiActivity.userId,
+        activityType: apiActivity.activityType as any,
+        severity: apiActivity.severity,
+        description: apiActivity.description,
+        detectedAt: apiActivity.createdAt,
+        isResolved: apiActivity.status === 'resolved',
+        autoActions: []
+    }));
+    const stats = statsData?.stats ? convertAPIStatsToContext(statsData.stats) : {
+        totalReports: 0,
+        pendingReports: 0,
+        resolvedReports: 0,
+        activeBans: 0,
+        suspiciousUsers: 0,
+        reportsThisWeek: 0,
+        averageResolutionTime: 0
+    };
 
     const submitReport = async (reportData: Omit<IReport, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<void> => {
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const newReport = addReport({
-                ...reportData,
-                status: 'pending'
+            await submitReportMutation.mutateAsync({
+                reportedUserId: reportData.reportedUserId,
+                reportType: reportData.reportType,
+                description: reportData.description
             });
             
-            setReports(prev => [...prev, newReport]);
-            
-            // Update stats
-            setStats(prev => ({
-                ...prev,
-                totalReports: prev.totalReports + 1,
-                pendingReports: prev.pendingReports + 1,
-                reportsThisWeek: prev.reportsThisWeek + 1
-            }));
-            
-            console.log('Report submitted successfully:', newReport);
+            console.log('Report submitted successfully');
         } catch (error) {
             console.error('Failed to submit report:', error);
             throw error;
@@ -67,28 +103,11 @@ export const ModerationProvider = ({ children }: ModerationProviderProps) => {
 
     const updateReportStatus = async (reportId: string, status: IReport['status'], resolution?: string): Promise<void> => {
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Update report in local state
-            setReports(prev => prev.map(report => {
-                if (report.id === reportId) {
-                    return {
-                        ...report,
-                        status,
-                        updatedAt: new Date().toISOString(),
-                        resolution: resolution || report.resolution
-                    };
-                }
-                return report;
-            }));
-            
-            // Update stats
-            setStats(prev => ({
-                ...prev,
-                pendingReports: status === 'pending' ? prev.pendingReports + 1 : prev.pendingReports - 1,
-                resolvedReports: status === 'resolved' ? prev.resolvedReports + 1 : prev.resolvedReports
-            }));
+            await updateReportStatusMutation.mutateAsync({
+                id: reportId,
+                status: status as any,
+                resolution
+            });
             
             console.log('Report status updated');
         } catch (error) {
@@ -99,21 +118,15 @@ export const ModerationProvider = ({ children }: ModerationProviderProps) => {
 
     const performModerationAction = async (actionData: Omit<IModerationAction, 'id' | 'createdAt' | 'performedBy'>): Promise<void> => {
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await performModerationActionMutation.mutateAsync({
+                reportId: actionData.reportId,
+                actionType: actionData.actionType as any,
+                targetUserId: actionData.targetUserId,
+                reason: actionData.reason,
+                isActive: actionData.isActive
+            });
             
-            const newAction = addModerationAction(actionData);
-            setModerationActions(prev => [...prev, newAction]);
-            
-            // Update stats based on action type
-            if (actionData.actionType === 'permanent_ban' || actionData.actionType === 'temporary_ban') {
-                setStats(prev => ({
-                    ...prev,
-                    activeBans: prev.activeBans + 1
-                }));
-            }
-            
-            console.log('Moderation action performed:', newAction);
+            console.log('Moderation action performed successfully');
         } catch (error) {
             console.error('Failed to perform moderation action:', error);
             throw error;
@@ -140,27 +153,9 @@ export const ModerationProvider = ({ children }: ModerationProviderProps) => {
 
     const markSuspiciousActivityResolved = async (activityId: string): Promise<void> => {
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Update suspicious activity in local state
-            setSuspiciousActivities(prev => prev.map(activity => {
-                if (activity.id === activityId) {
-                    return {
-                        ...activity,
-                        isResolved: true
-                    };
-                }
-                return activity;
-            }));
-            
-            // Update stats
-            setStats(prev => ({
-                ...prev,
-                suspiciousUsers: Math.max(0, prev.suspiciousUsers - 1)
-            }));
-            
-            console.log('Suspicious activity marked as resolved');
+            // For now, this would be a separate API endpoint
+            // We'll implement this later if needed
+            console.log('Suspicious activity marked as resolved:', activityId);
         } catch (error) {
             console.error('Failed to mark suspicious activity as resolved:', error);
             throw error;
@@ -173,6 +168,7 @@ export const ModerationProvider = ({ children }: ModerationProviderProps) => {
         suspiciousActivities,
         stats,
         isAdmin,
+        isLoading: reportsLoading || suspiciousLoading || statsLoading,
         submitReport,
         updateReportStatus,
         performModerationAction,

@@ -19,7 +19,7 @@ export type UserFormType = yup.InferType<typeof userValidationSchema>;
 
 
 const UserForm = () => {
-    const { currentUser, signInWithToken, token } = useAuth();
+    const { currentUser } = useAuth();
     const [isUpdating, setIsUpdating] = useState(false);
 
     const { register, handleSubmit, formState: { errors, isDirty }, control, setValue } = useForm<UserFormType>({
@@ -33,18 +33,18 @@ const UserForm = () => {
     });
     const [preview, setPreview] = useState<string | ArrayBuffer | null | undefined>(currentUser?.photoURL);
 
+    const token = localStorage.getItem('token') || '';
     const { mutateAsync: updateUserOnBackend } = useUpdateUserMutation(currentUser?.uid || "", token);
     const onSubmit = async (data: UserFormType) => {
         if (isDirty) {
             setIsUpdating(true);
             const fullName = `${data.firstName} ${data.lastName}`;
-            const { token } = await updateUserOnBackend(convertToFormData({
+            await updateUserOnBackend(convertToFormData({
                 firebaseId: currentUser?.uid,
                 email: data.email.trim(),
                 fullName,
                 avatar: data.image as Blob | string
             }));
-            await signInWithToken(token);
             currentUser?.reload();
             setIsUpdating(false);
         }

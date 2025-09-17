@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useFavorites } from "../context/FavoritesContext";
 import { IFavoriteAlert } from "../types/favorites";
+import { useConnections } from "../features/connections/api/connectionApi";
+import { IConnection } from "../features/connections/api/connectionApi";
 
 interface FavoritesAlertsProps {
     onViewProfile?: (userId: string) => void;
@@ -9,7 +11,17 @@ interface FavoritesAlertsProps {
 
 export const FavoritesAlerts = ({ onViewProfile, onStartChat }: FavoritesAlertsProps) => {
     const { alerts, unreadAlertsCount, markAlertAsRead } = useFavorites();
+    const { data: connectionsData } = useConnections();
     const [filter, setFilter] = useState<'all' | 'unread' | 'same_ship' | 'same_port'>('all');
+
+    // Get connected users for display names
+    const connectedUsers = connectionsData?.connections?.map((conn: IConnection) => {
+        const otherUserId = conn.user1_id === 'current-user-id' ? conn.user2_id : conn.user1_id;
+        return {
+            id: otherUserId,
+            displayName: conn.display_name || `User ${otherUserId.slice(-4)}`,
+        };
+    }) || [];
 
     const filteredAlerts = alerts.filter(alert => {
         switch (filter) {
@@ -65,14 +77,23 @@ export const FavoritesAlerts = ({ onViewProfile, onStartChat }: FavoritesAlertsP
         }
     };
 
-    const handleAlertClick = (alert: IFavoriteAlert) => {
+    const handleAlertClick = async (alert: IFavoriteAlert) => {
         if (!alert.isRead) {
-            markAlertAsRead(alert.id);
+            try {
+                await markAlertAsRead(alert.id);
+            } catch (error) {
+                console.error('Failed to mark alert as read:', error);
+            }
         }
         
         if (onViewProfile) {
             onViewProfile(alert.favoriteUserId);
         }
+    };
+
+    const getCrewMemberName = (userId: string) => {
+        const profile = connectedUsers.find((p: any) => p.id === userId);
+        return profile?.displayName || 'Unknown Crew Member';
     };
 
     return (
@@ -179,7 +200,7 @@ export const FavoritesAlerts = ({ onViewProfile, onStartChat }: FavoritesAlertsP
                                 <div className="flex-1 min-w-0">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-1 sm:space-y-0">
                                         <h3 className="font-semibold text-gray-900 truncate text-sm lg:text-base">
-                                            {alert.alertType === 'same_ship' ? 'Same Ship Today!' :
+                                            {getCrewMemberName(alert.favoriteUserId)} - {alert.alertType === 'same_ship' ? 'Same Ship Today!' :
                                              alert.alertType === 'same_port' ? 'Same Port Today!' :
                                              'Sailing Together!'}
                                         </h3>

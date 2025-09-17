@@ -13,9 +13,33 @@ import "react-toastify/dist/ReactToastify.css";
 import { AxiosError } from "axios";
 
 const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: (failureCount, error) => {
+                // Don't retry on 401 errors (authentication issues) or missing token errors
+                if (error instanceof AxiosError && error.response?.status === 401) {
+                    return false;
+                }
+                if (error instanceof Error && error.message === 'No authentication token available') {
+                    return false;
+                }
+                // Retry up to 3 times for other errors
+                return failureCount < 3;
+            },
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        },
+    },
     queryCache: new QueryCache({
         onError: (error) => {
             if (error instanceof AxiosError) {
+                // Don't show toast for 401 errors to avoid spam
+                if (error.response?.status !== 401) {
+                    toast.error(error.message);
+                }
+            } else if (error instanceof Error && error.message === 'No authentication token available') {
+                // Don't show toast for missing token errors
+                return;
+            } else if (error instanceof Error) {
                 toast.error(error.message);
             }
         },

@@ -55,6 +55,7 @@ export interface IModerationContext {
     suspiciousActivities: ISuspiciousActivity[];
     stats: IModerationStats;
     isAdmin: boolean;
+    isLoading?: boolean;
     submitReport: (report: Omit<IReport, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
     updateReportStatus: (reportId: string, status: IReport['status'], resolution?: string) => Promise<void>;
     performModerationAction: (action: Omit<IModerationAction, 'id' | 'createdAt' | 'performedBy'>) => Promise<void>;

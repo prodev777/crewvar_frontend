@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Navbar from "../../../components/Elements/Navbar";
 import { PrivacySettings } from "../../../components/PrivacySettings";
 import { BlockedUsersManager } from "../../../components/BlockedUsersManager";
 
@@ -8,7 +7,6 @@ export const Privacy = () => {
 
     return (
         <div className="container">
-            <Navbar />
             <div className="min-h-screen" style={{ backgroundColor: '#B9F3DF' }}>
                 <div className="container mx-auto px-4 py-8">
                     {/* Header */}

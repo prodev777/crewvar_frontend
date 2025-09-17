@@ -1,35 +1,42 @@
 import { FiChevronDown } from "react-icons/fi";
-import { useGetAllCategoriesQuery } from "../../features/category";
 import { ChangeEvent } from "react";
 
 type Props = {
-    selectedCategory?: number;
-    handleSelectCategory: (e: ChangeEvent<HTMLSelectElement>) => void;
+    selectedDepartment?: string;
+    handleSelectDepartment: (e: ChangeEvent<HTMLSelectElement>) => void;
+    departments?: string[];
 }
 
 export const CategorySelectBox = (props: Props) => {
-    const { data: categoryOptions, isSuccess } = useGetAllCategoriesQuery();
-
-    if (!isSuccess) {
-        return null;
-    }
+    const departments = props.departments || [
+        "Deck",
+        "Engine",
+        "Hotel",
+        "Food & Beverage",
+        "Entertainment",
+        "Medical",
+        "Security",
+        "IT",
+        "Housekeeping",
+        "Guest Services"
+    ];
 
     return (
         <div className="relative w-full sm:w-32 xl:w-48">
             <select
-                id="category"
+                id="department"
                 className="cursor-pointer outline-none appearance-none w-full border-[1px] border-gray-400 py-3 px-4 rounded-md bg-white text-secondary text-sm"
-                value={props.selectedCategory || -1}
-                onChange={props.handleSelectCategory}
+                value={props.selectedDepartment || ""}
+                onChange={props.handleSelectDepartment}
             >
-                <option value={-1} disabled>
-            Category
+                <option value="" disabled>
+                    Department
                 </option>
-                <option value={0}>All</option>
-                {categoryOptions.map((category: ICategory) => {
+                <option value="">All</option>
+                {departments.map((department: string) => {
                     return (
-                        <option key={category.id} value={category.id}>
-                            {category.name}
+                        <option key={department} value={department}>
+                            {department}
                         </option>
                     );
                 })}

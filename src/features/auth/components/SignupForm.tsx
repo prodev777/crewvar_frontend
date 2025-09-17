@@ -3,8 +3,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
-import { useAuth } from "../../../context/AuthContext";
-import { useRegisterWithGoogleMutation } from "../api/registerWithGoogle";
+import { useRegisterMutation } from "../api/register";
 import { Spinner } from "../../../components/Elements/Spinner";
 import { useState } from "react";
 
@@ -16,9 +15,7 @@ const registerValidationSchema = yup.object({
         .matches(/^\S*$/, "Password cannot contain spaces"),
     password2: yup.string()
         .oneOf([yup.ref("password")], "Passwords do not match")
-        .required("Password confirmation is required"),
-    firstName: yup.string().required("First name is required").trim().matches(/^[aA-zZ\s]+$/, "Name can only contain alphabets"),
-    lastName: yup.string().required("Last name is required").trim().matches(/^[aA-zZ\s]+$/, "Name can only contain alphabets")
+        .required("Password confirmation is required")
 });
 type SignupForm = yup.InferType<typeof registerValidationSchema>;
 
@@ -29,43 +26,40 @@ const SignupForm = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<SignupForm>({
         resolver: yupResolver<SignupForm>(registerValidationSchema),
     });
-    const { mutate: registerWithGoogle } = useRegisterWithGoogleMutation();
+    const { mutateAsync: registerUser } = useRegisterMutation();
 
-    const { signUp, signInWithGoogle } = useAuth();
     const handleRegister = async (data: SignupForm) => {
+        console.log('Form submitted with data:', data);
         try {
             setIsLoading(true);
             const credentials = {
                 email: data.email.trim(),
                 password: data.password,
-                fullName: `${data.firstName.trim()} ${data.lastName.trim()}`,
-                isAdmin: false
+                fullName: data.email.split('@')[0] // Use email prefix as display name
             };
         
-            await signUp(credentials);
-            navigate("/onboarding");
+            console.log('Sending registration request:', credentials);
+            const result = await registerUser(credentials);
+            console.log('Registration successful:', result);
+            alert('Registration successful! You can now login.');
+            console.log('Navigating to login page...');
+            navigate("/auth/login");
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            console.error('Error details:', error.response?.data);
+            alert(error.response?.data?.error || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleGoogleLogin = async () => {
-        const userCredentials = await signInWithGoogle();
-        if (userCredentials) {
-            const credentials = {
-                email: userCredentials.user.email || "",
-                fullName: userCredentials.user.displayName || "",
-                firebaseId: userCredentials.user.uid || "",
-            };
-            registerWithGoogle(credentials);
-            navigate("/onboarding");
-        }
+        alert('Google login not implemented yet. Please use email registration.');
     };
 
     return (
         <>
             <form
-                noValidate
                 className="w-full relative"
                 onSubmit={handleSubmit(handleRegister)}
             >
@@ -121,7 +115,11 @@ const SignupForm = () => {
                         </p>
                     }
                 </div>
-                <button className="w-full font-semibold text-sm bg-dark text-white transition hover:bg-opacity-90 rounded-xl py-3 px-4">
+                <button 
+                    type="submit"
+                    className="w-full font-semibold text-sm bg-dark text-white transition hover:bg-opacity-90 rounded-xl py-3 px-4"
+                    onClick={() => console.log('Signup button clicked')}
+                >
             Sign up
                 </button>
             </form>

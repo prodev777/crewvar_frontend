@@ -112,6 +112,7 @@ export const CalendarView = ({
                         </p>
                     </div>
                     <button
+                        type="button"
                         onClick={onAddAssignment}
                         className="px-4 py-2 bg-[#069B93] text-white rounded-lg hover:bg-[#058a7a] transition-colors font-medium"
                     >
@@ -131,10 +132,10 @@ export const CalendarView = ({
                         })}
                     </h3>
                     <div className="flex space-x-2">
-                        <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                        <button type="button" className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
                             ←
                         </button>
-                        <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
+                        <button type="button" className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">
                             →
                         </button>
                     </div>
@@ -217,6 +218,7 @@ export const CalendarView = ({
                                         {assignment.status}
                                     </span>
                                     <button
+                                        type="button"
                                         onClick={() => onEditAssignment?.(assignment)}
                                         className="text-[#069B93] hover:text-[#058a7a] text-sm font-medium"
                                     >

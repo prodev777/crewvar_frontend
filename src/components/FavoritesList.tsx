@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useFavorites } from "../context/FavoritesContext";
-import { sampleProfiles } from "../data/connections-data";
 
 interface FavoritesListProps {
     onViewProfile?: (userId: string) => void;
@@ -14,13 +13,18 @@ export const FavoritesList = ({ onViewProfile, onStartChat }: FavoritesListProps
     const filteredFavorites = favorites.filter(favorite => {
         if (!searchTerm) return true;
         
-        const profile = sampleProfiles.find(p => p.id === favorite.favoriteUserId);
-        return profile?.displayName.toLowerCase().includes(searchTerm.toLowerCase());
+        const displayName = favorite.favoriteUser?.displayName || `User ${favorite.favoriteUserId.slice(-4)}`;
+        return displayName.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
-    const handleRemoveFavorite = (userId: string, userName: string) => {
+    const handleRemoveFavorite = async (userId: string, userName: string) => {
         if (window.confirm(`Remove ${userName} from your favorites?`)) {
-            removeFavorite(userId);
+            try {
+                await removeFavorite(userId);
+            } catch (error) {
+                console.error('Failed to remove favorite:', error);
+                alert('Failed to remove favorite. Please try again.');
+            }
         }
     };
 
@@ -63,8 +67,8 @@ export const FavoritesList = ({ onViewProfile, onStartChat }: FavoritesListProps
                     </div>
                 ) : (
                     filteredFavorites.map((favorite) => {
-                        const profile = sampleProfiles.find(p => p.id === favorite.favoriteUserId);
-                        if (!profile) return null;
+                        const user = favorite.favoriteUser;
+                        if (!user) return null;
 
                         return (
                             <div
@@ -73,25 +77,31 @@ export const FavoritesList = ({ onViewProfile, onStartChat }: FavoritesListProps
                             >
                                 <div className="flex items-center space-x-3 sm:space-x-4">
                                     <div className="relative flex-shrink-0">
-                                        <img 
-                                            src={profile.avatar} 
-                                            alt={profile.displayName}
-                                            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover"
-                                        />
-                                        {profile.isOnline && (
-                                            <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                                        {user.profilePhoto ? (
+                                            <img 
+                                                src={user.profilePhoto} 
+                                                alt={user.displayName}
+                                                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-teal-500 rounded-full flex items-center justify-center">
+                                                <span className="text-white font-bold text-sm lg:text-base">
+                                                    {user.displayName.charAt(0)}
+                                                </span>
+                                            </div>
                                         )}
+                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-green-500 border-2 border-white rounded-full"></div>
                                     </div>
                                     
                                     <div className="flex-1 min-w-0">
                                         <h3 className="font-semibold text-gray-900 truncate text-sm lg:text-base">
-                                            {profile.displayName}
+                                            {user.displayName}
                                         </h3>
                                         <p className="text-xs lg:text-sm text-gray-600 truncate">
-                                            {profile.role} • {profile.department}
+                                            {user.role || 'Crew Member'} • {user.department || 'Not specified'}
                                         </p>
                                         <p className="text-xs text-gray-500 truncate">
-                                            {profile.shipName}
+                                            {user.shipName || 'Not specified'} ({user.cruiseLine || 'Not specified'})
                                         </p>
                                     </div>
                                 </div>
@@ -107,7 +117,7 @@ export const FavoritesList = ({ onViewProfile, onStartChat }: FavoritesListProps
                                     <div className="flex items-center space-x-1 lg:space-x-2">
                                         {onViewProfile && (
                                             <button
-                                                onClick={() => onViewProfile(profile.id)}
+                                                onClick={() => onViewProfile(user.id)}
                                                 className="px-2 lg:px-3 py-1 text-xs font-medium text-[#069B93] border border-[#069B93] hover:bg-[#069B93] hover:text-white rounded transition-colors"
                                             >
                                                 View
@@ -115,14 +125,14 @@ export const FavoritesList = ({ onViewProfile, onStartChat }: FavoritesListProps
                                         )}
                                         {onStartChat && (
                                             <button
-                                                onClick={() => onStartChat(profile.id)}
+                                                onClick={() => onStartChat(user.id)}
                                                 className="px-2 lg:px-3 py-1 text-xs font-medium text-white bg-[#069B93] hover:bg-[#058a7a] rounded transition-colors"
                                             >
                                                 Chat
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => handleRemoveFavorite(profile.id, profile.displayName)}
+                                            onClick={() => handleRemoveFavorite(favorite.favoriteUserId, user.displayName)}
                                             className="px-2 lg:px-3 py-1 text-xs font-medium text-red-600 border border-red-300 hover:bg-red-50 rounded transition-colors"
                                         >
                                             Remove

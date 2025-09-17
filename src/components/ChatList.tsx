@@ -1,25 +1,17 @@
 import { useState } from "react";
-import { useChat } from "../context/ChatContext";
-import { IChatRoom, IChatUser } from "../types/chat";
-import { getChatUserById } from "../data/chat-data";
+import { IChatRoom } from "../features/chat/api/chatApi";
 
 interface ChatListProps {
-    onSelectChat: (user: IChatUser) => void;
+    chatRooms: IChatRoom[];
+    onSelectChat: (room: IChatRoom) => void;
 }
 
-export const ChatList = ({ onSelectChat }: ChatListProps) => {
-    const { getChatRooms, unreadCount } = useChat();
+export const ChatList = ({ chatRooms, onSelectChat }: ChatListProps) => {
     const [searchTerm, setSearchTerm] = useState("");
 
-    const chatRooms = getChatRooms();
     const filteredRooms = chatRooms.filter(room => {
         if (!searchTerm) return true;
-        
-        const otherUser = getChatUserById(
-            room.participants.find(id => id !== "current_user") || ""
-        );
-        
-        return otherUser?.displayName.toLowerCase().includes(searchTerm.toLowerCase());
+        return room.other_user_name.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
     const formatTime = (timestamp: string) => {
@@ -36,118 +28,95 @@ export const ChatList = ({ onSelectChat }: ChatListProps) => {
         }
     };
 
-    const handleRoomClick = (room: IChatRoom) => {
-        const otherUserId = room.participants.find(id => id !== "current_user");
-        if (otherUserId) {
-            const otherUser = getChatUserById(otherUserId);
-            if (otherUser) {
-                onSelectChat(otherUser);
-            }
+    const getMessageStatusIcon = (status?: string) => {
+        switch (status) {
+            case 'read':
+                return <span className="text-white">✓✓</span>;
+            case 'delivered':
+                return <span className="text-white">✓✓</span>;
+            case 'sent':
+                return <span className="text-white">✓</span>;
+            default:
+                return null;
         }
     };
 
     return (
         <div className="flex flex-col h-full bg-white">
-            {/* Header */}
-            <div className="p-3 lg:p-4 border-b border-gray-200 bg-[#069B93] text-white">
-                <div className="flex items-center justify-between mb-3 lg:mb-4">
-                    <h2 className="text-lg lg:text-xl font-bold">Messages</h2>
-                    {unreadCount > 0 && (
-                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                            {unreadCount}
-                        </span>
-                    )}
+            {/* Search Bar */}
+            <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Search conversations..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
                 </div>
-                
-                {/* Search */}
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search conversations..."
-                    className="w-full px-3 lg:px-4 py-2 text-sm lg:text-base bg-white text-gray-900 rounded-lg focus:border-[#B9F3DF] focus:ring-1 focus:ring-[#B9F3DF] focus:outline-none"
-                />
             </div>
 
-            {/* Chat Rooms List */}
+            {/* Chat List */}
             <div className="flex-1 overflow-y-auto">
                 {filteredRooms.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">
-                        <p>No conversations found</p>
-                        {searchTerm && (
-                            <p className="text-sm mt-2">Try adjusting your search</p>
-                        )}
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        <svg className="h-12 w-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <p className="text-lg font-medium">No conversations found</p>
+                        <p className="text-sm">Start a new conversation</p>
                     </div>
                 ) : (
-                    filteredRooms.map((room) => {
-                        const otherUserId = room.participants.find(id => id !== "current_user");
-                        const otherUser = otherUserId ? getChatUserById(otherUserId) : null;
-                        
-                        if (!otherUser) return null;
-
-                        return (
+                    <div className="divide-y divide-gray-100">
+                        {filteredRooms.map((room) => (
                             <div
-                                key={room.id}
-                                onClick={() => handleRoomClick(room)}
-                                className="flex items-center space-x-3 p-3 lg:p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                                key={room.room_id}
+                                onClick={() => onSelectChat(room)}
+                                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                             >
-                                <div className="relative flex-shrink-0">
-                                    <img 
-                                        src={otherUser.avatar} 
-                                        alt={otherUser.displayName}
-                                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover"
-                                    />
-                                    {otherUser.isOnline && (
-                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                                    )}
-                                </div>
-                                
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-gray-900 truncate text-sm lg:text-base">
-                                            {otherUser.displayName}
-                                        </h3>
-                                        <div className="flex items-center space-x-2 flex-shrink-0">
-                                            <span className="text-xs text-gray-500">
-                                                {formatTime(room.lastActivity)}
-                                            </span>
-                                            {room.unreadCount > 0 && (
-                                                <span className="bg-[#069B93] text-white text-xs font-bold px-2 py-1 rounded-full">
-                                                    {room.unreadCount}
-                                                </span>
-                                            )}
-                                        </div>
+                                <div className="flex items-center space-x-3">
+                                    {/* Avatar */}
+                                    <div className="relative">
+                                        <img
+                                            src={room.other_user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(room.other_user_name)}&background=4ECDC4&color=fff&size=128`}
+                                            alt={room.other_user_name}
+                                            className="h-12 w-12 rounded-full object-cover"
+                                        />
+                                        {room.unread_count > 0 && (
+                                            <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                                {room.unread_count > 9 ? '9+' : room.unread_count}
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    <p className="text-xs lg:text-sm text-gray-600 truncate mt-1">
-                                        {room.lastMessage?.content || "No messages yet"}
-                                    </p>
-                                    
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <div className={`w-2 h-2 rounded-full ${
-                                            otherUser.isOnline ? 'bg-green-500' : 'bg-gray-400'
-                                        }`}></div>
-                                        <span className="text-xs text-gray-500 truncate">
-                                            {otherUser.isOnline ? 'Online' : `Last seen ${otherUser.lastSeen}`}
-                                        </span>
+
+                                    {/* Chat Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                {room.other_user_name}
+                                            </p>
+                                            <div className="flex items-center space-x-1">
+                                                <span className="text-xs text-gray-500">
+                                                    {room.last_message_time ? formatTime(room.last_message_time) : formatTime(room.updated_at)}
+                                                </span>
+                                                {getMessageStatusIcon(room.last_message_status)}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-500 truncate mt-1">
+                                            {room.last_message_content || 'No messages yet'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })
+                        ))}
+                    </div>
                 )}
             </div>
-
-            {/* Empty State */}
-            {chatRooms.length === 0 && (
-                <div className="text-center text-gray-500 py-6 lg:py-8">
-                    <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                        <span className="text-xl lg:text-2xl">💬</span>
-                    </div>
-                    <p className="text-base lg:text-lg font-medium">No conversations yet</p>
-                    <p className="text-xs lg:text-sm mt-2">Connect with crew members to start chatting!</p>
-                </div>
-            )}
         </div>
     );
 };

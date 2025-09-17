@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useUpdateShipAssignment } from "../features/user/api/shipAssignmentApi";
+import { useUserProfile } from "../features/auth/api/userProfile";
+import { useAllShips } from "../features/cruise/api/cruiseData";
 
 interface ShipAssignment {
     shipId: string;
@@ -37,6 +40,9 @@ export const QuickCheckInProvider = ({ children }: QuickCheckInProviderProps) =>
     const [currentShip, setCurrentShip] = useState<ShipAssignment | null>(null);
     const [showCheckInDialog, setShowCheckInDialog] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const updateShipAssignmentMutation = useUpdateShipAssignment();
+    const { data: userProfile } = useUserProfile();
+    const { data: allShips = [] } = useAllShips();
 
     // Check if user needs to confirm ship assignment on login
     useEffect(() => {
@@ -63,30 +69,56 @@ export const QuickCheckInProvider = ({ children }: QuickCheckInProviderProps) =>
         }
     }, []);
 
+    // Sync with user profile ship assignment
+    useEffect(() => {
+        if (userProfile?.current_ship_id && allShips.length > 0) {
+            const ship = allShips.find((s: any) => s.id === userProfile.current_ship_id);
+            if (ship) {
+                const today = new Date().toISOString().split('T')[0];
+                const profileShip: ShipAssignment = {
+                    shipId: userProfile.current_ship_id,
+                    shipName: ship.name,
+                    port: "Current Port", // This would come from ship data
+                    date: today,
+                    isConfirmed: true
+                };
+                
+                // Only set if we don't have a current ship or if it's different
+                if (!currentShip || currentShip.shipId !== profileShip.shipId) {
+                    setCurrentShip(profileShip);
+                    // Also save to localStorage for consistency
+                    localStorage.setItem('currentShipAssignment', JSON.stringify(profileShip));
+                }
+            }
+        }
+    }, [userProfile?.current_ship_id, allShips, currentShip]);
+
     const confirmShipAssignment = async (shipId: string, shipName: string) => {
         setIsLoading(true);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Update ship assignment in database
+            await updateShipAssignmentMutation.mutateAsync({
+                currentShipId: shipId
+            });
             
             const today = new Date().toISOString().split('T')[0];
             const shipAssignment: ShipAssignment = {
                 shipId,
                 shipName,
-                port: "Miami, Florida", // This would come from ship data
+                port: "Current Port", // This would come from ship data
                 date: today,
                 isConfirmed: true
             };
             
-            // Save to localStorage
+            // Save to localStorage for quick access
             localStorage.setItem('currentShipAssignment', JSON.stringify(shipAssignment));
             localStorage.setItem('lastShipConfirmation', today);
             
             setCurrentShip(shipAssignment);
             setShowCheckInDialog(false);
             
-            console.log(`Ship assignment confirmed: ${shipName} for ${today}`);
+            console.log(`Ship assignment updated in database: ${shipName} for ${today}`);
         } catch (error) {
             console.error('Failed to confirm ship assignment:', error);
         } finally {

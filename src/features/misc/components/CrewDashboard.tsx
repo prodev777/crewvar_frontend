@@ -1,9 +1,10 @@
 import { SearchBox } from "../../../components/Form";
 import { useState, ChangeEvent, useMemo } from "react";
-import { useDebounce } from "../../products/hooks/useDebounce";
+import { useDebounce } from "../../../hooks/useDebounce";
 import { sampleShips, sampleDepartments } from "../../../data/onboarding-data";
 import CrewMemberPreview from "./CrewMemberPreview";
 import { defaultAvatar } from "../../../utils/images";
+import { WhosInPort } from "../../port/components/WhosInPort";
 
 // Sample ports data
 const ports = [
@@ -140,6 +141,12 @@ export const CrewDashboard = (props: Props) => {
                     />
                 </div>
             </div>
+            
+            {/* Who's in Port Section */}
+            <div className="mb-8">
+                <WhosInPort />
+            </div>
+            
             <CrewGrid
                 isAdmin={props.isAdmin}
                 selectedShip={selectedShip}

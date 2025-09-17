@@ -61,7 +61,6 @@ export const AssignmentForm = ({
         
         try {
             await addAssignment({
-                userId: "current_user",
                 cruiseLineId: data.cruiseLineId,
                 shipId: data.shipId,
                 startDate: data.startDate,

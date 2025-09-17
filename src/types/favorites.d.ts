@@ -3,7 +3,16 @@ export interface IFavorite {
     userId: string; // User who marked as favorite
     favoriteUserId: string; // User who is favorited
     createdAt: string;
-    isActive: boolean;
+    isActive?: boolean;
+    favoriteUser?: {
+        id: string;
+        displayName: string;
+        profilePhoto?: string;
+        role?: string;
+        department?: string;
+        shipName?: string;
+        cruiseLine?: string;
+    };
 }
 
 export interface IFavoriteAlert {
@@ -12,11 +21,20 @@ export interface IFavoriteAlert {
     favoriteUserId: string;
     alertType: 'same_ship' | 'same_port' | 'both';
     shipName: string;
-    port: string;
+    port?: string;
     date: string; // YYYY-MM-DD format
     isRead: boolean;
     createdAt: string;
     message: string;
+    favoriteUser?: {
+        id: string;
+        displayName: string;
+        profilePhoto?: string;
+        role?: string;
+        department?: string;
+        shipName?: string;
+        cruiseLine?: string;
+    };
 }
 
 export interface IFavoriteContext {

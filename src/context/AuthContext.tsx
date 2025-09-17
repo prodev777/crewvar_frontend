@@ -1,101 +1,128 @@
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
-import { auth, googleProvider } from "../app/firebase";
-import { User, signInWithEmailAndPassword, UserCredential, signInWithCustomToken, signInWithPopup } from "firebase/auth";
-import { useRegisterMutation } from "../features/auth";
+import { api } from "../app/api";
 
 interface Props {
     children: ReactNode;
 }
 
+// Firebase-compatible User interface
+interface FirebaseUser {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    getIdToken: () => Promise<string>;
+    reload: () => Promise<void>;
+}
+
 interface IAuthContext {
-  currentUser: User | null;
-  isAdmin: boolean | undefined;
-  token: string;
-  signIn: (email: string, password: string) => Promise<UserCredential> | null;
-  signInWithToken: (token: string) => Promise<UserCredential> | null;
-  signInWithGoogle: () => Promise<UserCredential> | null;
-  signUp: (data: IRegisterCredentials) => Promise<UserCredential> | null;
+  currentUser: FirebaseUser | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: FirebaseUser }>;
   signOut: () => void;
 }
 
-
 const AuthContext = createContext<IAuthContext>({
     currentUser: null,
-    token: "",
-    isAdmin: undefined,
-    signIn: () => null,
-    signInWithToken: () => null,
-    signInWithGoogle: () => null,
-    signUp: () => null,
-    signOut: () => undefined
+    isLoading: true,
+    signIn: async () => { throw new Error('Auth not initialized'); },
+    signOut: () => {}
 });
-
 
 export const useAuth = () => {
     return useContext(AuthContext);
 };
 
-export const AuthProvider = ({ children } : Props) => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string>("");
+export const AuthProvider = ({ children }: Props) => {
+    const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [isAdmin, setIsAdmin] = useState<boolean>();
-    
-    const { mutateAsync: register } = useRegisterMutation();
-
-    const handleCurrentUser = async (user: User | null) => {
-        if (user) {
-            setCurrentUser(user);
-            const decoded = await user.getIdTokenResult();
-            setToken(decoded.token);
-            setIsAdmin(decoded.claims.role === "ADMIN");
-        } else {
-            setCurrentUser(null);
-            setToken("");
-        }
-        setIsLoading(false);
-    };
 
     const signIn = async (email: string, password: string) => {
-        return await signInWithEmailAndPassword(auth, email, password);
+        try {
+            // Use backend authentication
+            const response = await api.post('/auth/login', { email, password });
+            const { token, user } = response.data;
+            
+            // Store token
+            localStorage.setItem('token', token);
+            
+            // Create Firebase-compatible user object
+            const firebaseUser: FirebaseUser = {
+                uid: user.userId || user.id || 'unknown',
+                email: user.email,
+                displayName: user.displayName || user.fullName || user.email?.split('@')[0] || 'User',
+                photoURL: user.profilePhoto || user.avatar || null,
+                getIdToken: async () => token,
+                reload: async () => {
+                    // Refresh user data from backend
+                    try {
+                        const userResponse = await api.get('/auth/profile');
+                        const updatedUser = userResponse.data;
+                        setCurrentUser({
+                            ...firebaseUser,
+                            displayName: updatedUser.displayName || updatedUser.fullName || firebaseUser.displayName,
+                            photoURL: updatedUser.profilePhoto || updatedUser.avatar || firebaseUser.photoURL
+                        });
+                    } catch (error) {
+                        console.error('Failed to reload user:', error);
+                    }
+                }
+            };
+            
+            setCurrentUser(firebaseUser);
+            return { user: firebaseUser };
+        } catch (error) {
+            console.error('Sign in error:', error);
+            throw error;
+        }
     };
 
-    const signInWithToken = async (token: string) => {
-        return await signInWithCustomToken(auth, token);
-    };
-
-    const signInWithGoogle = async () => {
-        return await signInWithPopup(auth, googleProvider);
-    };
-
-    const signUp = async (data: IRegisterCredentials) => {
-        const { token } = await register(data);
-        return await signInWithToken(token);
-    };
-
-    const signOut = () => {
-        auth.signOut();
+    const signOut = async () => {
+        try {
+            localStorage.removeItem('token');
+            setCurrentUser(null);
+        } catch (error) {
+            console.error('Sign out error:', error);
+        }
     };
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(handleCurrentUser);
-        return () => unsubscribe();
+        const checkAuthStatus = () => {
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                // Create a basic user object for existing token
+                const firebaseUser: FirebaseUser = {
+                    uid: 'current_user',
+                    email: 'user@example.com',
+                    displayName: 'User',
+                    photoURL: null,
+                    getIdToken: async () => token,
+                    reload: async () => {
+                        console.log('User reload called');
+                    }
+                };
+                setCurrentUser(firebaseUser);
+            } else {
+                setCurrentUser(null);
+            }
+            
+            setIsLoading(false);
+        };
+
+        checkAuthStatus();
     }, []);
 
     const value = {
         currentUser,
-        isAdmin,
-        token,
+        isLoading,
         signIn,
-        signInWithToken,
-        signInWithGoogle,
-        signUp,
         signOut
     };
 
     return (
         <AuthContext.Provider value={value}>
-            { !isLoading && children }
+            {children}
         </AuthContext.Provider>
     );
 };

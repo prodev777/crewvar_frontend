@@ -1,19 +1,62 @@
-import { useOnboardingGuard } from "../context/OnboardingGuardContext";
+import { useUserProfile } from "../features/auth/api/userProfile";
 import { Link } from "react-router-dom";
 
 export const OnboardingProgress = () => {
-    const { 
-        onboardingStatus, 
-        isOnboardingComplete, 
-        missingRequirements,
-        requirements 
-    } = useOnboardingGuard();
+    const { data: userProfile, isLoading } = useUserProfile();
 
-    if (!onboardingStatus || isOnboardingComplete) {
+    if (isLoading || !userProfile) {
         return null;
     }
 
-    const progressPercentage = onboardingStatus.onboardingProgress;
+    // Check which requirements are completed based on actual user data
+    const requirements = [
+        {
+            id: 'email',
+            name: 'Email Verification',
+            description: 'Verify your email address to ensure account security',
+            isCompleted: userProfile.is_email_verified || false
+        },
+        {
+            id: 'profilePhoto',
+            name: 'Profile Photo',
+            description: 'Add a profile photo so other crew members can recognize you',
+            isCompleted: !!userProfile.profile_photo
+        },
+        {
+            id: 'displayName',
+            name: 'Display Name',
+            description: 'Set your display name as it will appear to other crew members',
+            isCompleted: !!userProfile.display_name
+        },
+        {
+            id: 'department',
+            name: 'Department',
+            description: 'Select your department (Food & Beverage, Entertainment, etc.)',
+            isCompleted: !!userProfile.department_id
+        },
+        {
+            id: 'role',
+            name: 'Role',
+            description: 'Specify your specific role within your department',
+            isCompleted: !!userProfile.role_id
+        },
+        {
+            id: 'currentShip',
+            name: 'Current Ship',
+            description: 'Select your current ship assignment',
+            isCompleted: !!userProfile.current_ship_id
+        }
+    ];
+
+    const completedCount = requirements.filter(req => req.isCompleted).length;
+    const totalCount = requirements.length;
+    const progressPercentage = Math.round((completedCount / totalCount) * 100);
+    const missingRequirements = requirements.filter(req => !req.isCompleted);
+
+    // Don't show if profile is complete
+    if (completedCount === totalCount) {
+        return null;
+    }
 
     return (
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">

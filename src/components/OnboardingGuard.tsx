@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useOnboardingGuard } from "../context/OnboardingGuardContext";
 import { useAuth } from "../context/AuthContext";
+import { useOnboardingGuard } from "../context/OnboardingGuardContext";
+import { useUserProfile } from "../features/auth/api/userProfile";
 
 interface OnboardingGuardProps {
     children: React.ReactNode;
@@ -10,20 +11,34 @@ interface OnboardingGuardProps {
 export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { currentUser } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
+    const { currentUser, isLoading: authLoading } = useAuth();
     const { 
-        onboardingStatus, 
-        isOnboardingComplete, 
-        isOnboardingRequired, 
-        missingRequirements,
         checkOnboardingStatus 
     } = useOnboardingGuard();
+    
+    // Get actual user profile data
+    const { data: userProfile, isLoading: profileLoading } = useUserProfile();
 
-    // Routes that don't require onboarding completion
+    // Check if user profile is complete based on actual data
+    const isProfileComplete = userProfile && 
+        userProfile.display_name && 
+        userProfile.profile_photo && 
+        userProfile.department_id && 
+        userProfile.subcategory_id && 
+        userProfile.role_id && 
+        userProfile.current_ship_id;
+
+    // Check if email is verified - DISABLED FOR NOW
+    const isEmailVerified = true; // Skip email verification for now
+
+    // Public routes that don't require authentication
     const publicRoutes = [
         '/',
         '/auth/login',
         '/auth/signup',
+        '/auth/verify-email',
+        '/auth/verification-pending',
         '/onboarding'
     ];
 
@@ -33,40 +48,88 @@ export const OnboardingGuard = ({ children }: OnboardingGuardProps) => {
     );
 
     useEffect(() => {
-        const checkOnboarding = async () => {
-            if (!currentUser) return; // No user logged in
-            
-            try {
-                await checkOnboardingStatus(currentUser.uid);
-            } catch (error) {
-                console.error('Failed to check onboarding status:', error);
-            }
-        };
+        // Small delay to allow Firebase to restore state
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1000);
 
-        checkOnboarding();
-    }, [currentUser, checkOnboardingStatus]);
+        return () => clearTimeout(timer);
+    }, []);
 
-    // Redirect logic
+    // Check onboarding status when user is authenticated
     useEffect(() => {
-        if (!currentUser) return; // No user logged in
-        if (isPublicRoute) return; // Public route, no redirect needed
-        if (isOnboardingComplete) return; // Onboarding complete, no redirect needed
-
-        // User is logged in, not on public route, and onboarding is required
-        if (isOnboardingRequired) {
-            console.log('Redirecting to onboarding - missing requirements:', missingRequirements);
-            navigate('/onboarding', { 
-                replace: true,
-                state: { 
-                    from: location.pathname,
-                    missingRequirements 
-                }
+        if (currentUser && !isPublicRoute) {
+            checkOnboardingStatus("current_user").catch(error => {
+                console.error('Failed to check onboarding status:', error);
             });
         }
-    }, [currentUser, isPublicRoute, isOnboardingComplete, isOnboardingRequired, missingRequirements, navigate, location.pathname]);
+    }, [currentUser, isPublicRoute, checkOnboardingStatus]);
 
-    // Show loading state while checking onboarding status
-    if (currentUser && !onboardingStatus) {
+    useEffect(() => {
+        // Don't redirect while loading
+        if (isLoading || authLoading || profileLoading) return;
+
+        // If not authenticated and trying to access protected route, redirect to login
+        if (!currentUser && !isPublicRoute) {
+            console.log('No user logged in, redirecting to login');
+            navigate('/auth/login', { 
+                replace: true,
+                state: { from: location.pathname }
+            });
+            return;
+        }
+
+        // If authenticated, check email verification first
+        if (currentUser && !isPublicRoute) {
+            // If email is not verified, redirect to verification pending page
+            if (!isEmailVerified) {
+                console.log('Email not verified, redirecting to verification pending');
+                navigate('/auth/verification-pending', { 
+                    replace: true,
+                    state: { 
+                        from: location.pathname,
+                        email: currentUser.email
+                    }
+                });
+                return;
+            }
+
+            // If email is verified but profile is not complete, redirect to onboarding
+            // Add a small delay to prevent race conditions with profile updates
+            if (!isProfileComplete) {
+                console.log('Profile not complete, redirecting to onboarding');
+                console.log('Profile data:', userProfile);
+                
+                // Only redirect if we're not already on the onboarding page
+                if (location.pathname !== '/onboarding') {
+                    navigate('/onboarding', { 
+                        replace: true,
+                        state: { 
+                            from: location.pathname
+                        }
+                    });
+                }
+                return;
+            }
+        }
+    }, [isLoading, authLoading, profileLoading, currentUser, isPublicRoute, isEmailVerified, isProfileComplete, userProfile, navigate, location.pathname]);
+
+    // Show loading while checking authentication
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#B9F3DF' }}>
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-[#069B93] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <p className="text-[#069B93] font-medium">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show loading while checking profile status
+    if (currentUser && !isPublicRoute && profileLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#B9F3DF' }}>
                 <div className="text-center">
