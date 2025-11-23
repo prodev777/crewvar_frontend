@@ -16,7 +16,7 @@
     "@reduxjs/toolkit": "^1.9.5",
     "@tanstack/react-query": "^4.29.19",
     "@types/multer": "^2.0.0",
-    "axios": "^1.4.0",
+    "axios": "^1.13.1",
     "firebase": "^9.23.0",
     "lodash.debounce": "^4.0.8",
     "multer": "^2.0.2",
